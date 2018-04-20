@@ -3,25 +3,8 @@ package graphqlws
 import (
 	"errors"
 
-	"github.com/graphql-go/graphql"
-	"github.com/graphql-go/graphql/gqlerrors"
-	"github.com/graphql-go/graphql/language/ast"
-	"github.com/graphql-go/graphql/language/parser"
 	log "github.com/sirupsen/logrus"
 )
-
-// ErrorsFromGraphQLErrors convert from GraphQL errors to regular errors.
-func ErrorsFromGraphQLErrors(errors []gqlerrors.FormattedError) []error {
-	if len(errors) == 0 {
-		return nil
-	}
-
-	out := make([]error, len(errors))
-	for i := range errors {
-		out[i] = errors[i]
-	}
-	return out
-}
 
 // SubscriptionSendDataFunc is a function that sends updated data
 // for a specific subscription to the corresponding subscriber.
@@ -35,27 +18,9 @@ type Subscription struct {
 	Query         string
 	Variables     map[string]interface{}
 	OperationName string
-	Document      *ast.Document
 	Fields        []string
 	Connection    Connection
 	SendData      SubscriptionSendDataFunc
-}
-
-// MatchesField returns true if the subscription is for data that
-// belongs to the given field.
-func (s *Subscription) MatchesField(field string) bool {
-	if s.Document == nil || len(s.Fields) == 0 {
-		return false
-	}
-
-	// The subscription matches the field if any of the queries have
-	// the same name as the field
-	for _, name := range s.Fields {
-		if name == field {
-			return true
-		}
-	}
-	return false
 }
 
 // ConnectionSubscriptions defines a map of all subscriptions of
@@ -89,16 +54,14 @@ type SubscriptionManager interface {
 
 type subscriptionManager struct {
 	subscriptions Subscriptions
-	schema        *graphql.Schema
 	logger        *log.Entry
 }
 
 // NewSubscriptionManager creates a new subscription manager.
-func NewSubscriptionManager(schema *graphql.Schema) SubscriptionManager {
+func NewSubscriptionManager() SubscriptionManager {
 	manager := new(subscriptionManager)
 	manager.subscriptions = make(Subscriptions)
 	manager.logger = NewLogger("subscriptions")
-	manager.schema = schema
 	return manager
 }
 
@@ -119,30 +82,6 @@ func (m *subscriptionManager) AddSubscription(
 		m.logger.WithField("errors", errors).Warn("Failed to add invalid subscription")
 		return errors
 	}
-
-	// Parse the subscription query
-	document, err := parser.Parse(parser.ParseParams{
-		Source: subscription.Query,
-	})
-	if err != nil {
-		m.logger.WithField("err", err).Warn("Failed to parse subscription query")
-		return []error{err}
-	}
-
-	// Validate the query document
-	validation := graphql.ValidateDocument(m.schema, document, nil)
-	if !validation.IsValid {
-		m.logger.WithFields(log.Fields{
-			"errors": validation.Errors,
-		}).Warn("Failed to validate subscription query")
-		return ErrorsFromGraphQLErrors(validation.Errors)
-	}
-
-	// Remember the query document for later
-	subscription.Document = document
-
-	// Extract query names from the document (typically, there should only be one)
-	subscription.Fields = subscriptionFieldNamesFromDocument(document)
 
 	// Allocate the connection's map of subscription IDs to
 	// subscriptions on demand

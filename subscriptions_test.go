@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/functionalfoundry/graphqlws"
-	"github.com/graphql-go/graphql"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -41,17 +40,14 @@ func TestMain(m *testing.M) {
 }
 
 func TestSubscriptions_NewSubscriptionManagerCreatesInstance(t *testing.T) {
-	schema, _ := graphql.NewSchema(graphql.SchemaConfig{})
-
-	sm := graphqlws.NewSubscriptionManager(&schema)
+	sm := graphqlws.NewSubscriptionManager()
 	if sm == nil {
 		t.Fatal("NewSubscriptionManager fails in creating a new instance")
 	}
 }
 
 func TestSubscriptions_SubscriptionsAreEmptyInitially(t *testing.T) {
-	schema, _ := graphql.NewSchema(graphql.SchemaConfig{})
-	sm := graphqlws.NewSubscriptionManager(&schema)
+	sm := graphqlws.NewSubscriptionManager()
 
 	if len(sm.Subscriptions()) > 0 {
 		t.Fatal("The subscriptions of SubscriptionManager are not empty initially")
@@ -59,8 +55,7 @@ func TestSubscriptions_SubscriptionsAreEmptyInitially(t *testing.T) {
 }
 
 func TestSubscriptions_AddingInvalidSubscriptionsFails(t *testing.T) {
-	schema, _ := graphql.NewSchema(graphql.SchemaConfig{})
-	sm := graphqlws.NewSubscriptionManager(&schema)
+	sm := graphqlws.NewSubscriptionManager()
 
 	conn := mockWebSocketConnection{
 		id: "1",
@@ -105,16 +100,7 @@ func TestSubscriptions_AddingInvalidSubscriptionsFails(t *testing.T) {
 }
 
 func TestSubscriptions_AddingValidSubscriptionsWorks(t *testing.T) {
-	schema, _ := graphql.NewSchema(graphql.SchemaConfig{
-		Subscription: graphql.NewObject(graphql.ObjectConfig{
-			Name: "Subscription",
-			Fields: graphql.Fields{
-				"users": &graphql.Field{
-					Type: graphql.NewList(graphql.String),
-				},
-			},
-		})})
-	sm := graphqlws.NewSubscriptionManager(&schema)
+	sm := graphqlws.NewSubscriptionManager()
 
 	conn := mockWebSocketConnection{
 		id: "1",
@@ -169,16 +155,7 @@ func TestSubscriptions_AddingValidSubscriptionsWorks(t *testing.T) {
 }
 
 func TestSubscriptions_AddingSubscriptionsTwiceFails(t *testing.T) {
-	schema, _ := graphql.NewSchema(graphql.SchemaConfig{
-		Subscription: graphql.NewObject(graphql.ObjectConfig{
-			Name: "Subscription",
-			Fields: graphql.Fields{
-				"users": &graphql.Field{
-					Type: graphql.NewList(graphql.String),
-				},
-			},
-		})})
-	sm := graphqlws.NewSubscriptionManager(&schema)
+	sm := graphqlws.NewSubscriptionManager()
 
 	conn := mockWebSocketConnection{
 		id: "1",
@@ -213,16 +190,7 @@ func TestSubscriptions_AddingSubscriptionsTwiceFails(t *testing.T) {
 }
 
 func TestSubscriptions_RemovingSubscriptionsWorks(t *testing.T) {
-	schema, _ := graphql.NewSchema(graphql.SchemaConfig{
-		Subscription: graphql.NewObject(graphql.ObjectConfig{
-			Name: "Subscription",
-			Fields: graphql.Fields{
-				"users": &graphql.Field{
-					Type: graphql.NewList(graphql.String),
-				},
-			},
-		})})
-	sm := graphqlws.NewSubscriptionManager(&schema)
+	sm := graphqlws.NewSubscriptionManager()
 
 	conn := mockWebSocketConnection{
 		id: "1",
@@ -266,16 +234,7 @@ func TestSubscriptions_RemovingSubscriptionsWorks(t *testing.T) {
 }
 
 func TestSubscriptions_RemovingSubscriptionsOfAConnectionWorks(t *testing.T) {
-	schema, _ := graphql.NewSchema(graphql.SchemaConfig{
-		Subscription: graphql.NewObject(graphql.ObjectConfig{
-			Name: "Subscription",
-			Fields: graphql.Fields{
-				"users": &graphql.Field{
-					Type: graphql.NewList(graphql.String),
-				},
-			},
-		})})
-	sm := graphqlws.NewSubscriptionManager(&schema)
+	sm := graphqlws.NewSubscriptionManager()
 
 	conn1 := mockWebSocketConnection{id: "1"}
 	conn2 := mockWebSocketConnection{id: "2"}

@@ -16,7 +16,6 @@ Brought to you by [Functional Foundry](https://functionalfoundry.com).
    go get github.com/x-cray/logrus-prefixed-formatter
    go get github.com/google/uuid
    go get github.com/gorilla/websocket
-   go get github.com/graphql-go/graphql
    ```
 2. Clone the repository:
    ```sh
@@ -45,15 +44,11 @@ import (
 	"net/http"
 
 	"github.com/functionalfoundry/graphqlws"
-	"github.com/graphql-go/graphql"
 )
 
 func main() {
-	// Create a GraphQL schema
-	schema, err := graphql.NewSchema(...)
-
 	// Create a subscription manager
-	subscriptionManager := graphqlws.NewSubscriptionManager(&schema)
+	subscriptionManager := graphqlws.NewSubscriptionManager()
 
 	// Create a WebSocket/HTTP handler
 	graphqlwsHandler := graphqlws.NewHandler(graphqlws.HandlerConfig{
@@ -113,7 +108,7 @@ for conn, _ := range subscriptions {
 			// Data can be anything (interface{})
 			Data:   result.Data,
 			// Errors is optional ([]error)
-			Errors: graphqlws.ErrorsFromGraphQLErrors(result.Errors),
+			Errors: errorsFromGraphQLErrors(result.Errors),
 		}
 		subscription.SendData(&data)
 	}
