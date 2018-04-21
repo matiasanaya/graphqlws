@@ -74,6 +74,7 @@ func NewHandler(config HandlerConfig) http.Handler {
 						}).Debug("Start operation")
 
 						return subscriptionManager.AddSubscription(conn, &Subscription{
+							stopCh:        make(chan struct{}),
 							ID:            opID,
 							Query:         data.Query,
 							Variables:     data.Variables,

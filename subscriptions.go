@@ -14,6 +14,7 @@ type SubscriptionSendDataFunc func(*DataMessagePayload)
 // made by a client, including a function to send data back to the
 // client when there are updates to the subscription query result.
 type Subscription struct {
+	stopCh        chan struct{}
 	ID            string
 	Query         string
 	Variables     map[string]interface{}
@@ -21,6 +22,10 @@ type Subscription struct {
 	Fields        []string
 	Connection    Connection
 	SendData      SubscriptionSendDataFunc
+}
+
+func (s *Subscription) StopCh() <-chan struct{} {
+	return s.stopCh
 }
 
 // ConnectionSubscriptions defines a map of all subscriptions of
@@ -52,14 +57,18 @@ type SubscriptionManager interface {
  * The default implementation of the SubscriptionManager interface.
  */
 
+type subscriptionListener func(*Subscription)
+
 type subscriptionManager struct {
-	subscriptions Subscriptions
-	logger        *log.Entry
+	subscriptionListeners []subscriptionListener
+	subscriptions         Subscriptions
+	logger                *log.Entry
 }
 
 // NewSubscriptionManager creates a new subscription manager.
-func NewSubscriptionManager() SubscriptionManager {
+func NewSubscriptionManager(subscriptionListeners ...subscriptionListener) SubscriptionManager {
 	manager := new(subscriptionManager)
+	manager.subscriptionListeners = subscriptionListeners
 	manager.subscriptions = make(Subscriptions)
 	manager.logger = NewLogger("subscriptions")
 	return manager
@@ -99,6 +108,9 @@ func (m *subscriptionManager) AddSubscription(
 	}
 
 	m.subscriptions[conn][subscription.ID] = subscription
+	for _, f := range m.subscriptionListeners {
+		go f(subscription)
+	}
 
 	return nil
 }
@@ -111,6 +123,13 @@ func (m *subscriptionManager) RemoveSubscription(
 		"conn":         conn.ID(),
 		"subscription": subscription.ID,
 	}).Info("Remove subscription")
+
+	// close channel
+	if _, okConn := m.subscriptions[conn]; okConn {
+		if s, okSub := m.subscriptions[conn][subscription.ID]; okSub {
+			close(s.stopCh)
+		}
+	}
 
 	// Remove the subscription from its connections' subscription map
 	delete(m.subscriptions[conn], subscription.ID)
